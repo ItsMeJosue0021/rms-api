@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/manuscripts/public', [ManuscriptController::class, 'publicIndex'])->name('manuscript.public.index');
+Route::get('/manuscripts/test', [ManuscriptController::class, 'test'])->name('manuscript.test');
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
