@@ -3,21 +3,36 @@
 namespace App\Services;
 
 use App\Models\Manuscript;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ManuscriptService
 {
-    private const FILE_DISK = 'public';
-
-    public function list(int $perPage = 15): LengthAwarePaginator
+    public function list(int $perPage = 15, array $filters = []): LengthAwarePaginator
     {
-        return Manuscript::query()
+        $query = Manuscript::query()
             ->with('files')
-            ->latest()
-            ->paginate($perPage);
+            ;
+
+        $this->applyListFilters($query, $filters);
+
+        return $query->paginate($perPage);
+    }
+
+    public function listPublic(int $perPage = 15, array $filters = []): LengthAwarePaginator
+    {
+        $query = Manuscript::query()
+            ->with('files')
+            ->where('is_public', true)
+            ;
+
+        $this->applyListFilters($query, $filters);
+
+        return $query->paginate($perPage);
     }
 
     public function find(string $id): Manuscript
@@ -59,6 +74,53 @@ class ManuscriptService
         return (bool) $manuscript->delete();
     }
 
+    private function applyListFilters(Builder $query, array $filters): void
+    {
+        $keyword = isset($filters['q']) ? trim((string) $filters['q']) : '';
+
+        if ($keyword !== '') {
+            $like = '%' . $keyword . '%';
+            $query->where(function (Builder $q) use ($like): void {
+                $q->where('title', 'like', $like)
+                    ->orWhere('abstract', 'like', $like);
+            });
+        }
+
+        foreach (['category', 'program', 'department', 'school_year'] as $field) {
+            if (isset($filters[$field]) && $filters[$field] !== '') {
+                $query->where($field, (string) $filters[$field]);
+            }
+        }
+
+        if (array_key_exists('is_public', $filters) && $filters['is_public'] !== null && $filters['is_public'] !== '') {
+            $query->where('is_public', $this->normalizeBoolean($filters['is_public']));
+        }
+
+        $sort = (string) ($filters['sort'] ?? '');
+        $order = strtolower((string) ($filters['order'] ?? 'desc'));
+        $allowedSorts = ['title', 'school_year', 'category', 'program', 'department', 'created_at', 'updated_at'];
+
+        if (in_array($sort, $allowedSorts, true)) {
+            $query->orderBy($sort, $order === 'asc' ? 'asc' : 'desc');
+            return;
+        }
+
+        $query->latest();
+    }
+
+    private function normalizeBoolean(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
+        }
+
+        return (bool) $value;
+    }
+
     private function replaceFiles(Manuscript $manuscript, array $files): void
     {
         $this->deleteManuscriptFiles($manuscript);
@@ -74,10 +136,11 @@ class ManuscriptService
     private function deleteManuscriptFiles(Manuscript $manuscript): void
     {
         $manuscript->loadMissing('files');
+        $disk = $this->disk();
 
         $manuscript->files->each(function ($file) {
-            if (is_string($file->path) && Storage::disk(self::FILE_DISK)->exists($file->path)) {
-                Storage::disk(self::FILE_DISK)->delete($file->path);
+            if (is_string($file->path) && $disk->exists($file->path)) {
+                $disk->delete($file->path);
             }
         });
 
@@ -122,6 +185,16 @@ class ManuscriptService
             $file->getClientOriginalExtension()
         );
 
-        return $file->storeAs($directory, $filename, self::FILE_DISK);
+        return $file->storeAs($directory, $filename, $this->diskName());
+    }
+
+    private function diskName(): string
+    {
+        return (string) config('filesystems.manuscripts_disk', 'public');
+    }
+
+    private function disk(): FilesystemAdapter
+    {
+        return Storage::disk($this->diskName());
     }
 }

@@ -25,9 +25,42 @@ class ManuscriptController extends Controller
     {
         $perPage = (int) $request->query('per_page', 15);
         $perPage = max(1, min($perPage, 100));
-        $manuscripts = $this->manuscriptService->list($perPage);
+        $manuscripts = $this->manuscriptService->list($perPage, $this->collectListFilters($request, true));
 
         return ManuscriptResource::collection($manuscripts);
+    }
+
+    /**
+     * Summary of publicIndex
+     * @param Request $request
+     * @return AnonymousResourceCollection
+     */
+    public function publicIndex(Request $request): AnonymousResourceCollection
+    {
+        $perPage = (int) $request->query('per_page', 15);
+        $perPage = max(1, min($perPage, 100));
+        $manuscripts = $this->manuscriptService->listPublic($perPage, $this->collectListFilters($request));
+
+        return ManuscriptResource::collection($manuscripts);
+    }
+
+    private function collectListFilters(Request $request, bool $includePublicFlag = false): array
+    {
+        $filters = [
+            'q' => $request->query('q'),
+            'category' => $request->query('category'),
+            'program' => $request->query('program'),
+            'department' => $request->query('department'),
+            'school_year' => $request->query('school_year'),
+            'sort' => $request->query('sort'),
+            'order' => $request->query('order'),
+        ];
+
+        if ($includePublicFlag) {
+            $filters['is_public'] = $request->query('is_public');
+        }
+
+        return $filters;
     }
 
     /**

@@ -57,3 +57,42 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Cloud Run Deployment
+
+This repository now includes a production-oriented Docker setup for Google Cloud Run:
+
+- `Dockerfile`
+- `.dockerignore`
+- `docker/start-container.sh`
+
+Build and deploy from the project root:
+
+```bash
+gcloud run deploy rms-api --source . --region=REGION
+```
+
+Important environment variables for Cloud Run:
+
+```bash
+APP_ENV=production
+APP_DEBUG=false
+APP_KEY=base64:...
+APP_URL=https://YOUR_CLOUD_RUN_URL
+LOG_CHANNEL=stderr
+LOG_STACK=stderr
+DB_CONNECTION=mysql
+DB_HOST=...
+DB_PORT=3306
+DB_DATABASE=...
+DB_USERNAME=...
+DB_PASSWORD=...
+MANUSCRIPT_FILESYSTEM_DISK=public
+```
+
+Important notes for this app:
+
+- Cloud Run expects the container to listen on the port provided by `PORT`. The included startup script configures Apache to use that port automatically.
+- Cloud Run's local filesystem is writable but not persistent. Do not rely on local storage for long-term manuscript uploads.
+- Manuscript uploads are now configurable through `MANUSCRIPT_FILESYSTEM_DISK`. If you keep it on `public`, uploaded files are instance-local and can disappear when the instance is replaced.
+- Run database migrations as a separate deployment step instead of on every container start.

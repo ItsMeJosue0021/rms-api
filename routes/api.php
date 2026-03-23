@@ -5,6 +5,8 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/manuscripts/public', [ManuscriptController::class, 'publicIndex'])->name('manuscript.public.index');
+
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -15,13 +17,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/activity-logs', [ActivityLogController::class, 'index'])->middleware('role:super_admin');
 
     Route::apiResource('manuscripts', ManuscriptController::class)
-        ->only(['index', 'show'])
+        ->only(['show'])
         ->names([
-            'index' => 'manuscript.index',
             'show' => 'manuscript.show',
         ]);
 
     Route::middleware('role:admin,super_admin')->group(function () {
+        Route::get('/admin/manuscripts', [ManuscriptController::class, 'index'])->name('manuscript.admin.index');
+
         Route::apiResource('manuscripts', ManuscriptController::class)
             ->only(['store', 'update', 'destroy'])
             ->names([

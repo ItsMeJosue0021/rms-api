@@ -23,11 +23,13 @@ class Manuscript extends Model
         'authors',
         'program',
         'department',
+        'is_public',
     ];
 
     protected $casts = [
         'keywords' => 'array',
         'authors' => 'array',
+        'is_public' => 'boolean',
     ];
 
     public function files(): HasMany

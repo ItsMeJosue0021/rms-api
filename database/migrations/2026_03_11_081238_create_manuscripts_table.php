@@ -21,6 +21,7 @@ return new class extends Migration
             $table->json('authors')->nullable();
             $table->string('program');
             $table->string('department');
+            $table->boolean('is_public')->default(false);
             $table->timestamps();
         });
     }

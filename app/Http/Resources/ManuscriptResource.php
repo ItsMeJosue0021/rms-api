@@ -19,10 +19,10 @@ class ManuscriptResource extends JsonResource
             'authors' => $this->authors,
             'program' => $this->program,
             'department' => $this->department,
+            'is_public' => $this->is_public,
             'files' => ManuscriptFileResource::collection($this->whenLoaded('files')),
             'created_at' => optional($this->created_at)->toISOString(),
             'updated_at' => optional($this->updated_at)->toISOString(),
         ];
     }
 }
-
