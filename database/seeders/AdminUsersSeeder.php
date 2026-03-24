@@ -35,7 +35,7 @@ class AdminUsersSeeder extends Seeder
         ];
 
         foreach ($accounts as $account) {
-            User::query()->firstOrCreate(
+            User::query()->updateOrCreate(
                 ['email' => $account['email']],
                 [
                     'first_name' => $account['first_name'],

@@ -15,7 +15,7 @@ class RoleMiddleware
      * @param string $roles
      * @return Response
      */
-    public function handle(Request $request, Closure $next, string $roles): Response
+    public function handle(Request $request, Closure $next, string ...$roles): Response
     {
         $user = $request->user();
 
@@ -25,7 +25,10 @@ class RoleMiddleware
             ], 401);
         }
 
-        $allowedRoles = array_map('trim', explode(',', $roles));
+        $allowedRoles = array_values(array_filter(array_map(
+            static fn(string $role): string => trim($role),
+            $roles
+        )));
 
         if (! $user->hasRole($allowedRoles)) {
             return response()->json([
@@ -36,4 +39,3 @@ class RoleMiddleware
         return $next($request);
     }
 }
-
